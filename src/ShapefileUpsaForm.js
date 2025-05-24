@@ -150,7 +150,7 @@ const ShapefileUpsaForm = () => {
 
     const filePath = `shapefiles/${file.name}`;
     const { error: fileError } = await supabase.storage
-      .from('shapefileUploads')
+      .from('shapefileuploads')
       .upload(filePath, file, { upsert: true });
 
     if (fileError) {
@@ -161,7 +161,7 @@ const ShapefileUpsaForm = () => {
 
     try {
       console.log('Mengirim ke server (UPSA):', filePath);
-      const response = await fetch('http://localhost:3001/validate-shapefile', {
+      const response = await fetch('https://shapefile-validator.onrender.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ zip_path: filePath })
