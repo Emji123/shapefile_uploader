@@ -1,0 +1,23 @@
+.keterangan-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+}
+
+.keterangan-container h3 {
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #007bff;
+}
+
+.keterangan-container ol {
+  padding-left: 20px;
+}
+
+.keterangan-container li {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
