@@ -69,13 +69,13 @@ const ShapefileForm = () => {
           featureCount++;
           const feature = result.value;
           if (!feature) {
-            errorMessages.push(`- Fitur ke-${featureCount} tidak valid di ${dbfFile}.`);
+            errorMessages.push(`- Baris ke-${featureCount} tidak valid di ${dbfFile}.`);
             break;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
-            errorMessages.push(`- Fitur ke-${featureCount} tidak memiliki properti valid di ${dbfFile}.`);
+            errorMessages.push(`- Baris ke-${featureCount} tidak memiliki properti valid di ${dbfFile}.`);
             break;
           }
           console.log('Properti fitur:', properties);
@@ -96,20 +96,20 @@ const ShapefileForm = () => {
             }
           });
           if (emptyInFeature.length > 0) {
-            emptyFields.push(`Fitur ke-${featureCount}: ${emptyInFeature.join(', ')}`);
+            emptyFields.push(`Baris ke-${featureCount} pada field: ${emptyInFeature.join(', ')}`);
           }
         } while (!result.done);
 
         if (featureCount === 0) {
-          errorMessages.push(`- File ${dbfFile} tidak memiliki fitur.`);
+          errorMessages.push(`- File ${dbfFile} tidak memiliki baris data.`);
           continue;
         }
 
         if (missingFields.size > 0) {
-          errorMessages.push(`- Field hilang di ${dbfFile}: ${Array.from(missingFields).join(', ')}.`);
+          errorMessages.push(`- Field belum ditambahkan di ${dbfFile}: ${Array.from(missingFields).join(', ')}.`);
         }
         if (emptyFields.length > 0) {
-          errorMessages.push(`- Field kosong di ${dbfFile}: ${emptyFields.join('; ')}.`);
+          errorMessages.push(`- Field belum diisi di ${dbfFile}: ${emptyFields.join('; ')}.`);
         }
       }
 
