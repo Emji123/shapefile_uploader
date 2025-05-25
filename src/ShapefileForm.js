@@ -149,15 +149,18 @@ const ShapefileForm = () => {
       return;
     }
 
-    // Format tanggal: DD_MMM_YYYY (misalnya, 12_MEI_2025)
+    // Format tanggal dan jam: DD_MMM_YYYY_HHMM (misalnya, 25_MEI_2025_1730)
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = now.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase().replace('.', '');
     const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
     const dateString = `${day}_${month}_${year}`;
-
-    // Tambahkan tanggal ke nama file
-    const fileNameWithDate = `${file.name}_${dateString}`;
+    const timeString = `${hours}${minutes}`;
+    
+    // Tambahkan tanggal dan jam ke nama file
+    const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
     const filePath = `shapefiles/${fileNameWithDate}`;
 
     console.log('Mengunggah ke bucket:', 'shapefileuploads', 'Path:', filePath);
@@ -187,7 +190,7 @@ const ShapefileForm = () => {
         const validationData = JSON.parse(text);
         if (!response.ok || validationData.error) {
           setError(validationData.error || 'Validasi shapefile gagal!');
-          await supabase.storage.from('shapefileUploads').remove([filePath]);
+          await supabase.storage.from('shapefileuploads').remove([filePath]);
           setIsUploading(false);
           return;
         }
@@ -198,12 +201,12 @@ const ShapefileForm = () => {
         setIsUploading(false);
       } catch (jsonError) {
         setError('Error parsing JSON: ' + jsonError.message + ' (Server mengembalikan: ' + text.substring(0, 100) + ')');
-        await supabase.storage.from('shapefileUploads').remove([filePath]);
+        await supabase.storage.from('shapefileuploads').remove([filePath]);
         setIsUploading(false);
       }
     } catch (err) {
       setError('Error saat validasi: ' + err.message);
-      await supabase.storage.from('shapefileUploads').remove([filePath]);
+      await supabase.storage.from('shapefileuploads').remove([filePath]);
       setIsUploading(false);
     }
   };
