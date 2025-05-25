@@ -149,12 +149,24 @@ const ShapefileForm = () => {
       return;
     }
 
-    const filePath = `shapefiles/${file.name}`;
+    // Format tanggal: DD_MMM_YYYY (misalnya, 12_MEI_2025)
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = now.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase().replace('.', '');
+    const year = now.getFullYear();
+    const dateString = `${day}_${month}_${year}`;
+
+    // Tambahkan tanggal ke nama file
+    const fileNameWithDate = `${file.name}_${dateString}`;
+    const filePath = `shapefiles/${fileNameWithDate}`;
+
+    console.log('Mengunggah ke bucket:', 'shapefileuploads', 'Path:', filePath);
     const { error: fileError } = await supabase.storage
       .from('shapefileuploads')
       .upload(filePath, file, { upsert: true });
 
     if (fileError) {
+      console.log('Supabase upload error:', fileError);
       setError('Gagal mengunggah shapefile: ' + fileError.message);
       setIsUploading(false);
       return;
@@ -168,6 +180,7 @@ const ShapefileForm = () => {
         body: JSON.stringify({ zip_path: filePath })
       });
 
+      console.log('Status respons:', response.status, response.statusText);
       const text = await response.text();
       console.log('Respons server:', text);
       try {
