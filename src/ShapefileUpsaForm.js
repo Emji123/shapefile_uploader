@@ -148,7 +148,7 @@ const ShapefileUpsaForm = () => {
       return;
     }
 
-    // Format tanggal dan jam: DD_MMM_YYYY_HHMM (misalnya, 25_MEI_2025_1730)
+    // Format tanggal dan jam: DD_MMM_YYYY_HHMM (misalnya, 25_MEI_2025_0920)
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = now.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase().replace('.', '');
@@ -219,7 +219,7 @@ const ShapefileUpsaForm = () => {
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label htmlFor="shapefileUpsaInput" className="file-input-label">
-            Pilih File SHP UPSA
+            Pilih File .zip UPSA
           </label>
           <input
             type="file"
