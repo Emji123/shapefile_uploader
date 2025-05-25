@@ -161,7 +161,7 @@ const ShapefileUpsaForm = () => {
 
     try {
       console.log('Mengirim ke server (UPSA):', filePath);
-      const response = await fetch('https://shapefile-validator.onrender.com', {
+      const response = await fetch('https://shapefile-validator.onrender.com/validate-shapefile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ zip_path: filePath })
