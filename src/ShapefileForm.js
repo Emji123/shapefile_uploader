@@ -174,7 +174,7 @@ const ShapefileForm = () => {
 
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
       console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'kbr' });
-      const response = await fetch(`${BACKEND_URL}/validate-shapefile`, {
+      const response = await fetch(`${BACKEND_URL}/upload-shapefile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ zip_path: filePath, bucket: 'kbr' })
