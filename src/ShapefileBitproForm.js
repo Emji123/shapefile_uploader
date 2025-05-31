@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_KEY
 );
 
-const ShapefileUpsaForm = () => {
+const ShapefileBitproForm = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -23,7 +23,7 @@ const ShapefileUpsaForm = () => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    console.log('File dipilih (Persemaian):', selectedFile ? selectedFile.name : 'Tidak ada file');
+    console.log('File dipilih (Bitpro):', selectedFile ? selectedFile.name : 'Tidak ada file');
     setFile(selectedFile);
     setError('');
     setSuccess('');
@@ -31,7 +31,7 @@ const ShapefileUpsaForm = () => {
 
   const validateZip = async (zipFile) => {
     try {
-      console.log('Validasi ZIP (Persemaian):', zipFile.name);
+      console.log('Validasi ZIP (Bitpro):', zipFile.name);
       const zip = new JSZip();
       const content = await zip.loadAsync(zipFile);
       const files = Object.keys(content.files);
@@ -123,7 +123,7 @@ const ShapefileUpsaForm = () => {
 
       return { valid: true };
     } catch (err) {
-      console.error('Error validasi ZIP (Persemaian):', err);
+      console.error('Error validasi ZIP (Bitpro):', err);
       return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}` };
     }
   };
@@ -150,21 +150,18 @@ const ShapefileUpsaForm = () => {
       return;
     }
 
-    // Deklarasikan filePath di luar try untuk menghindari ReferenceError
     let filePath = '';
     try {
-      // Buat nama file dengan timestamp
       const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
       console.log('Waktu lokal:', now.toString());
       const dateString = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_').toUpperCase();
       const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/[:.]/g, '');
       const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
       filePath = `shapefiles/${fileNameWithDate}`;
-      console.log('Mengunggah ke:', { bucket: 'persemaian', filePath });
+      console.log('Mengunggah ke:', { bucket: 'bitpro', filePath });
 
-      // Unggah ke Supabase
       const { data: uploadData, error: fileError } = await supabase.storage
-        .from('persemaian')
+        .from('bitpro')
         .upload(filePath, file, { upsert: true });
 
       if (fileError) {
@@ -175,13 +172,12 @@ const ShapefileUpsaForm = () => {
       }
       console.log('Upload sukses:', uploadData);
 
-      // Validasi di backend
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-      console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'persemaian' });
+      console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'bitpro' });
       const response = await fetch(`${BACKEND_URL}/validate-shapefile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zip_path: filePath, bucket: 'persemaian' })
+        body: JSON.stringify({ zip_path: filePath, bucket: 'bitpro' })
       });
 
       const result = await response.json();
@@ -190,20 +186,19 @@ const ShapefileUpsaForm = () => {
       if (!response.ok) {
         console.error('Backend error:', result);
         setError(result.error || 'Gagal memvalidasi shapefile.');
-        await supabase.storage.from('persemaian').remove([filePath]);
+        await supabase.storage.from('bitpro').remove([filePath]);
         setIsUploading(false);
         return;
       }
 
       setSuccess('Shapefile berhasil diunggah dan divalidasi!');
       setFile(null);
-      document.getElementById('shapefileUpsaInput').value = '';
+      document.getElementById('shapefileBitproInput').value = '';
     } catch (err) {
       console.error('Error umum:', err);
       setError('Terjadi kesalahan: ' + err.message);
-      // Hanya hapus file jika filePath sudah didefinisikan
       if (filePath) {
-        await supabase.storage.from('persemaian').remove([filePath]);
+        await supabase.storage.from('bitpro').remove([filePath]);
       }
     } finally {
       setIsUploading(false);
@@ -212,18 +207,18 @@ const ShapefileUpsaForm = () => {
 
   return (
     <div className="form-container">
-      <h2>Upload Shapefile Penanaman Bibit Persemaian</h2>
+      <h2>Upload Shapefile Bibit Produktif</h2>
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
       {isUploading && <p className="uploading">Sedang mengunggah shapefile...</p>}
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <label htmlFor="shapefileUpsaInput" className="file-input-label">
-            Pilih File .zip Persemaian
+          <label htmlFor="shapefileBitproInput" className="file-input-label">
+            Pilih File .zip Bitpro
           </label>
           <input
             type="file"
-            id="shapefileUpsaInput"
+            id="shapefileBitproInput"
             name="shapefile"
             onChange={handleFileChange}
             accept=".zip"
@@ -241,4 +236,4 @@ const ShapefileUpsaForm = () => {
   );
 };
 
-export default ShapefileUpsaForm;
+export default ShapefileBitproForm;

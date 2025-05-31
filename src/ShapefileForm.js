@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { supabase } from './supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import JSZip from 'jszip';
 import { openDbf } from 'shapefile';
 import './ShapefileForm.css';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_KEY
+);
 
 const ShapefileForm = () => {
   const [file, setFile] = useState(null);
@@ -11,15 +16,14 @@ const ShapefileForm = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const requiredFields = [
-    'ID_RHL', 'BPDAS', 'UR_BPDAS', 'PELAKSANA', 'PROV', 'KAB', 'KEC',
-    'DESA', 'NAMA_BLOK', 'LUAS_HA', 'TIPE_KNTRK', 'PEMANGKU', 'FUNGSI',
-    'ARAHAN', 'POLA', 'BTG_HA', 'THN_TNM', 'JENIS_TNM', 'BTG_TOTAL',
-    'TGL_KNTRK', 'NO_KNTRK', 'NI_KNTRK'
+    'ID', 'BPDAS', 'UR_BPDAS', 'WADMPR', 'WADMKK', 'WADMKC', 'DESA',
+    'KELOMPOK', 'LUAS_HA', 'JENIS_TNM', 'BTG_TOTAL', 'THN_BUAT',
+    'THN_TNM', 'FUNGSI_KWS'
   ];
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    console.log('File dipilih (Intensif Agro):', selectedFile ? selectedFile.name : 'Tidak ada file');
+    console.log('File dipilih (KBR):', selectedFile ? selectedFile.name : 'Tidak ada file');
     setFile(selectedFile);
     setError('');
     setSuccess('');
@@ -27,7 +31,7 @@ const ShapefileForm = () => {
 
   const validateZip = async (zipFile) => {
     try {
-      console.log('Validasi ZIP (Intensif Agro):', zipFile.name);
+      console.log('Validasi ZIP (KBR):', zipFile.name);
       const zip = new JSZip();
       const content = await zip.loadAsync(zipFile);
       const files = Object.keys(content.files);
@@ -119,7 +123,7 @@ const ShapefileForm = () => {
 
       return { valid: true };
     } catch (err) {
-      console.error('Error validasi ZIP (Intensif Agro):', err);
+      console.error('Error validasi ZIP (KBR):', err);
       return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}` };
     }
   };
@@ -131,100 +135,90 @@ const ShapefileForm = () => {
     setIsUploading(true);
 
     if (!file) {
-      setError('File shapefile (ZIP) wajib diunggah!');
+      console.log('Tidak ada file dipilih');
+      setError('Pilih file ZIP terlebih dahulu!');
       setIsUploading(false);
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith('.zip')) {
-      setError('File harus berupa ZIP yang berisi shapefile!');
-      setIsUploading(false);
-      return;
-    }
-
+    console.log('Memulai validasi file:', file.name);
     const validation = await validateZip(file);
     if (!validation.valid) {
+      console.error('Validasi gagal:', validation.error);
       setError(validation.error);
       setIsUploading(false);
       return;
     }
 
-    // Format tanggal dan jam: DD_MMM_YYYY_HHMM (misalnya, 25_MEI_2025_0920)
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = now.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase().replace('.', '');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const dateString = `${day}_${month}_${year}`;
-    const timeString = `${hours}${minutes}`;
-    
-    // Tambahkan tanggal dan jam ke nama file
-    const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
-    const filePath = `shapefiles/${fileNameWithDate}`;
-
-    console.log('Mengunggah ke bucket:', 'shapefileuploads', 'Path:', filePath);
-    const { error: fileError } = await supabase.storage
-      .from('shapefileuploads')
-      .upload(filePath, file, { upsert: true });
-
-    if (fileError) {
-      console.log('Supabase upload error:', fileError);
-      setError('Gagal mengunggah shapefile: ' + fileError.message);
-      setIsUploading(false);
-      return;
-    }
-
+    let filePath = '';
     try {
-      console.log('Mengirim ke server (Intensif Agro):', filePath);
-      const response = await fetch('https://shapefile-validator.onrender.com/validate-shapefile', {
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+      console.log('Waktu lokal:', now.toString());
+      const dateString = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_').toUpperCase();
+      const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/[:.]/g, '');
+      const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
+      filePath = `shapefiles/${fileNameWithDate}`;
+      console.log('Mengunggah ke:', { bucket: 'kbr', filePath });
+
+      const { data: uploadData, error: fileError } = await supabase.storage
+        .from('kbr')
+        .upload(filePath, file, { upsert: true });
+
+      if (fileError) {
+        console.error('Upload error:', fileError);
+        setError('Gagal mengunggah: ' + fileError.message);
+        setIsUploading(false);
+        return;
+      }
+      console.log('Upload sukses:', uploadData);
+
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'kbr' });
+      const response = await fetch(`${BACKEND_URL}/validate-shapefile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zip_path: filePath })
+        body: JSON.stringify({ zip_path: filePath, bucket: 'kbr' })
       });
 
-      console.log('Status respons:', response.status, response.statusText);
-      const text = await response.text();
-      console.log('Respons server:', text);
-      try {
-        const validationData = JSON.parse(text);
-        if (!response.ok || validationData.error) {
-          setError(validationData.error || 'Validasi shapefile gagal!');
-          await supabase.storage.from('shapefileuploads').remove([filePath]);
-          setIsUploading(false);
-          return;
-        }
+      const result = await response.json();
+      console.log('Respons backend:', result);
 
-        setSuccess('Shapefile berhasil diunggah dan divalidasi!');
-        setFile(null);
-        document.getElementById('shapefileInput').value = '';
+      if (!response.ok) {
+        console.error('Backend error:', result);
+        setError(result.error || 'Gagal memvalidasi shapefile.');
+        await supabase.storage.from('kbr').remove([filePath]);
         setIsUploading(false);
-      } catch (jsonError) {
-        setError('Error parsing JSON: ' + jsonError.message + ' (Server mengembalikan: ' + text.substring(0, 100) + ')');
-        await supabase.storage.from('shapefileuploads').remove([filePath]);
-        setIsUploading(false);
+        return;
       }
+
+      setSuccess('Shapefile berhasil diunggah dan divalidasi!');
+      setFile(null);
+      document.getElementById('shapefileKbrInput').value = '';
     } catch (err) {
-      setError('Error saat validasi: ' + err.message);
-      await supabase.storage.from('shapefileuploads').remove([filePath]);
+      console.error('Error umum:', err);
+      setError('Terjadi kesalahan: ' + err.message);
+      if (filePath) {
+        await supabase.storage.from('kbr').remove([filePath]);
+      }
+    } finally {
       setIsUploading(false);
     }
   };
 
   return (
     <div className="form-container">
-      <h2>Upload Shapefile Intensif Agro</h2>
+      <h2>Upload Shapefile Kebun Bibit Rakyat</h2>
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
       {isUploading && <p className="uploading">Sedang mengunggah shapefile...</p>}
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <label htmlFor="shapefileInput" className="file-input-label">
-            Pilih File .zip Intensif Agro
+          <label htmlFor="shapefileKbrInput" className="file-input-label">
+            Pilih File .zip KBR
           </label>
           <input
             type="file"
-            id="shapefileInput"
+            id="shapefileKbrInput"
             name="shapefile"
             onChange={handleFileChange}
             accept=".zip"
