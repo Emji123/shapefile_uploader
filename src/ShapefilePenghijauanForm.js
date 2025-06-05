@@ -9,21 +9,21 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_KEY
 );
 
-const ShapefileMataAirForm = () => {
+const ShapefilePenghijauanForm = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   const requiredFields = [
-    'ID', 'BPDAS', 'UR_BPDAS', 'WADMPR', 'WADMKK', 'WADMKC', 'DESA',
-    'KELOMPOK', 'LUAS_HA', 'JENIS_TNM', 'BTG_TOTAL', 'THN_BUAT',
+    'ID', 'SATKER', 'KD_WILAYAH', 'WADMPR', 'WADMKK', 'WADMKC', 'DESA',
+    'KELOMPOK', 'SUMB_ANGGR', 'LUAS_HA', 'JENIS_TNM', 'BTG_TOTAL',
     'THN_TNM', 'FUNGSI_KWS'
   ];
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    console.log('File dipilih (Mata Air):', selectedFile ? selectedFile.name : 'Tidak ada file');
+    console.log('File dipilih (Penghijauan):', selectedFile ? selectedFile.name : 'Tidak ada file');
     setFile(selectedFile);
     setError('');
     setSuccess('');
@@ -31,7 +31,7 @@ const ShapefileMataAirForm = () => {
 
   const validateZip = async (zipFile) => {
     try {
-      console.log('Validasi ZIP (Mata Air):', zipFile.name);
+      console.log('Validasi ZIP (Penghijauan):', zipFile.name);
       const zip = new JSZip();
       const content = await zip.loadAsync(zipFile);
       const files = Object.keys(content.files);
@@ -144,7 +144,7 @@ const ShapefileMataAirForm = () => {
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {
-      console.error('Error validasi ZIP (Mata Air):', err);
+      console.error('Error validasi ZIP (Penghijauan):', err);
       return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}\nPerbaiki shapefile dan upload ulang` };
     }
   };
@@ -179,14 +179,14 @@ const ShapefileMataAirForm = () => {
       const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/[:.]/g, '');
       const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
       filePath = `shapefiles/${fileNameWithDate}`;
-      console.log('Mengunggah ke:', { bucket: 'mataair', filePath });
+      console.log('Mengunggah ke:', { bucket: 'penghijauandinas', filePath });
 
       const { data: uploadData, error: fileError } = await supabase.storage
-        .from('mataair')
+        .from('penghijauandinas')
         .upload(filePath, file, { upsert: true });
 
       if (fileError) {
-        console.error('Upload error details:', fileError);
+        console.error('Upload error:', fileError);
         setError('Gagal mengunggah: ' + fileError.message);
         setIsUploading(false);
         return;
@@ -194,11 +194,11 @@ const ShapefileMataAirForm = () => {
       console.log('Upload sukses:', uploadData);
 
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-      console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'mataair' });
+      console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'penghijauandinas' });
       const response = await fetch(`${BACKEND_URL}/upload-shapefile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zip_path: filePath, bucket: 'mataair' })
+        body: JSON.stringify({ zip_path: filePath, bucket: 'penghijauandinas' })
       });
 
       const result = await response.json();
@@ -206,20 +206,20 @@ const ShapefileMataAirForm = () => {
 
       if (!response.ok) {
         console.error('Backend error:', result);
-        setError(result.error || 'Gagal memproses upload.');
-        await supabase.storage.from('mataair').remove([filePath]);
+        setError(result.error || 'Gagal memvalidasi shapefile.');
+        await supabase.storage.from('penghijauandinas').remove([filePath]);
         setIsUploading(false);
         return;
       }
 
       setSuccess(validation.success);
       setFile(null);
-      document.getElementById('shapefileMataAirInput').value = '';
+      document.getElementById('shapefilePenghijauanInput').value = '';
     } catch (err) {
       console.error('Error umum:', err);
       setError('Terjadi kesalahan: ' + err.message);
       if (filePath) {
-        await supabase.storage.from('mataair').remove([filePath]);
+        await supabase.storage.from('penghijauandinas').remove([filePath]);
       }
     } finally {
       setIsUploading(false);
@@ -228,18 +228,18 @@ const ShapefileMataAirForm = () => {
 
   return (
     <div className="form-container">
-      <h2>Upload Shapefile Penanaman Imbuhan Mata Air</h2>
+      <h2>Upload Shapefile Kegiatan Penghijauan Dinas Kehutanan/LHK</h2>
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
       {isUploading && <p className="uploading">Sedang mengunggah shapefile...</p>}
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <label htmlFor="shapefileMataAirInput" className="file-input-label">
-            Pilih File .zip Mata Air
+          <label htmlFor="shapefilePenghijauanInput" className="file-input-label">
+            Pilih File .zip Penghijauan
           </label>
           <input
             type="file"
-            id="shapefileMataAirInput"
+            id="shapefilePenghijauanInput"
             name="shapefile"
             onChange={handleFileChange}
             accept=".zip"
@@ -257,4 +257,4 @@ const ShapefileMataAirForm = () => {
   );
 };
 
-export default ShapefileMataAirForm;
+export default ShapefilePenghijauanForm;

@@ -1,23 +1,44 @@
 .keterangan-container {
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 20px;
-  text-align: left;
-  font-size: 14px;
-  color: #333;
 }
 
 .keterangan-container h3 {
-  margin-bottom: 10px;
-  font-size: 18px;
-  color: #007bff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: left;
 }
 
-.keterangan-container ol {
+.keterangan-box {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.keterangan-list {
+  text-align: justify;
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.6;
+  margin: 0;
   padding-left: 20px;
 }
 
-.keterangan-container li {
+.keterangan-list li {
   margin-bottom: 10px;
-  line-height: 1.5;
+}
+
+.keterangan-list ul {
+  padding-left: 40px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.keterangan-list ul li {
+  list-style-type: disc;
+  margin-bottom: 5px;
 }

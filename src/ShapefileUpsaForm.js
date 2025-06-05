@@ -42,9 +42,13 @@ const ShapefileUpsaForm = () => {
         return { valid: false, error: 'File ZIP harus berisi setidaknya satu file .shp.' };
       }
 
+      const successMessages = [];
       const errorMessages = [];
+      let shapefileIndex = 0;
+      let validShapefileCount = 0;
 
       for (const shpFile of shpFiles) {
+        shapefileIndex++;
         const baseName = shpFile.substring(0, shpFile.length - 4).toLowerCase();
         console.log('Memvalidasi shapefile:', baseName);
 
@@ -52,7 +56,7 @@ const ShapefileUpsaForm = () => {
         const dbfFile = files.find(name => name.toLowerCase() === `${baseName}.dbf`);
 
         if (!shxFile || !dbfFile) {
-          errorMessages.push(`- Shapefile ${baseName} tidak lengkap: harus memiliki .shp, .shx, dan .dbf.`);
+          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf.`);
           continue;
         }
 
@@ -61,7 +65,7 @@ const ShapefileUpsaForm = () => {
         console.log('Membuka .dbf:', dbfFile);
 
         let missingFields = new Set();
-        let emptyFields = [];
+        let emptyFieldsMap = new Map();
         let featureCount = 0;
 
         let result;
@@ -73,13 +77,13 @@ const ShapefileUpsaForm = () => {
           featureCount++;
           const feature = result.value;
           if (!feature) {
-            errorMessages.push(`- Baris ke-${featureCount} tidak valid di ${dbfFile}.`);
+            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid.`);
             break;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
-            errorMessages.push(`- Baris ke-${featureCount} tidak memiliki properti valid di ${dbfFile}.`);
+            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid.`);
             break;
           }
           console.log('Properti fitur:', properties);
@@ -87,44 +91,61 @@ const ShapefileUpsaForm = () => {
           requiredFields.forEach(field => {
             if (!(field in properties)) {
               missingFields.add(field);
-            }
-          });
-
-          let emptyInFeature = [];
-          requiredFields.forEach(field => {
-            if (field in properties) {
+            } else {
               const value = properties[field];
               if (value === null || value === '') {
-                emptyInFeature.push(field);
+                if (!emptyFieldsMap.has(field)) {
+                  emptyFieldsMap.set(field, []);
+                }
+                emptyFieldsMap.get(field).push(featureCount);
               }
             }
           });
-          if (emptyInFeature.length > 0) {
-            emptyFields.push(`Baris ke-${featureCount} pada field: ${emptyInFeature.join(', ')}`);
-          }
         } while (!result.done);
 
         if (featureCount === 0) {
-          errorMessages.push(`- File ${dbfFile} tidak memiliki baris data.`);
+          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data.`);
           continue;
         }
 
-        if (missingFields.size > 0) {
-          errorMessages.push(`- Field belum ditambahkan di ${dbfFile}: ${Array.from(missingFields).join(', ')}.`);
-        }
-        if (emptyFields.length > 0) {
-          errorMessages.push(`- Field belum diisi di ${dbfFile}: ${emptyFields.join('; ')}.`);
+        let shapefileErrors = [];
+        if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
+          shapefileErrors.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:`);
+          if (missingFields.size > 0) {
+            shapefileErrors.push(`    a. Field yang belum ada yaitu:`);
+            Array.from(missingFields).forEach(field => {
+              shapefileErrors.push(`         - ${field}`);
+            });
+          }
+          if (emptyFieldsMap.size > 0) {
+            shapefileErrors.push(`    b. Field yang datanya belum diisi/kosong:`);
+            emptyFieldsMap.forEach((rows, field) => {
+              shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(',')}`);
+            });
+          }
+          errorMessages.push(shapefileErrors.join('\n'));
+        } else {
+          successMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} sudah lengkap`);
+          validShapefileCount++;
         }
       }
 
-      if (errorMessages.length > 0) {
-        return { valid: false, error: errorMessages.join('\n') };
+      if (validShapefileCount === shpFiles.length) {
+        return { valid: true, success: 'Data sudah valid dan berhasil diunggah' };
+      } else {
+        let combinedMessage = [];
+        if (successMessages.length > 0) {
+          combinedMessage.push(successMessages.join('\n'));
+        }
+        if (errorMessages.length > 0) {
+          combinedMessage.push(errorMessages.join('\n'));
+        }
+        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        return { valid: false, error: combinedMessage.join('\n') };
       }
-
-      return { valid: true };
     } catch (err) {
       console.error('Error validasi ZIP (Persemaian):', err);
-      return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}` };
+      return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}\nPerbaiki shapefile dan upload ulang` };
     }
   };
 
@@ -150,10 +171,8 @@ const ShapefileUpsaForm = () => {
       return;
     }
 
-    // Deklarasikan filePath di luar try untuk menghindari ReferenceError
     let filePath = '';
     try {
-      // Buat nama file dengan timestamp
       const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
       console.log('Waktu lokal:', now.toString());
       const dateString = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_').toUpperCase();
@@ -162,7 +181,6 @@ const ShapefileUpsaForm = () => {
       filePath = `shapefiles/${fileNameWithDate}`;
       console.log('Mengunggah ke:', { bucket: 'persemaian', filePath });
 
-      // Unggah ke Supabase
       const { data: uploadData, error: fileError } = await supabase.storage
         .from('persemaian')
         .upload(filePath, file, { upsert: true });
@@ -175,7 +193,6 @@ const ShapefileUpsaForm = () => {
       }
       console.log('Upload sukses:', uploadData);
 
-      // Validasi di backend
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
       console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'persemaian' });
       const response = await fetch(`${BACKEND_URL}/upload-shapefile`, {
@@ -195,13 +212,12 @@ const ShapefileUpsaForm = () => {
         return;
       }
 
-      setSuccess('Shapefile berhasil diunggah dan divalidasi!');
+      setSuccess(validation.success);
       setFile(null);
       document.getElementById('shapefileUpsaInput').value = '';
     } catch (err) {
       console.error('Error umum:', err);
       setError('Terjadi kesalahan: ' + err.message);
-      // Hanya hapus file jika filePath sudah didefinisikan
       if (filePath) {
         await supabase.storage.from('persemaian').remove([filePath]);
       }

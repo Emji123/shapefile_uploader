@@ -6,3 +6,11 @@
   flex-direction: column;
   gap: 30px;
 }
+
+h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  color: #333;
+  margin: 0;
+}
