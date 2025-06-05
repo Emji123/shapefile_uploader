@@ -88,7 +88,7 @@ const ShapefileMataAirForm = () => {
           }
           console.log('Properti fitur:', properties);
 
-          requiredFields.forEach(field => {
+          for (const field of requiredFields) {
             if (!(field in properties)) {
               missingFields.add(field);
             } else {
@@ -100,7 +100,7 @@ const ShapefileMataAirForm = () => {
                 emptyFieldsMap.get(field).push(featureCount);
               }
             }
-          });
+          }
         } while (!result.done);
 
         if (featureCount === 0) {
@@ -140,7 +140,7 @@ const ShapefileMataAirForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {
@@ -186,7 +186,7 @@ const ShapefileMataAirForm = () => {
         .upload(filePath, file, { upsert: true });
 
       if (fileError) {
-        console.error('Upload error details:', fileError);
+        console.error('Upload error:', fileError);
         setError('Gagal mengunggah: ' + fileError.message);
         setIsUploading(false);
         return;
@@ -206,7 +206,7 @@ const ShapefileMataAirForm = () => {
 
       if (!response.ok) {
         console.error('Backend error:', result);
-        setError(result.error || 'Gagal memproses upload.');
+        setError(result.error || 'Gagal memvalidasi shapefile.');
         await supabase.storage.from('mataair').remove([filePath]);
         setIsUploading(false);
         return;

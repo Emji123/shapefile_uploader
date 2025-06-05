@@ -56,7 +56,7 @@ const ShapefilePenghijauanForm = () => {
         const dbfFile = files.find(name => name.toLowerCase() === `${baseName}.dbf`);
 
         if (!shxFile || !dbfFile) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf.`);
+          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf`);
           continue;
         }
 
@@ -88,7 +88,7 @@ const ShapefilePenghijauanForm = () => {
           }
           console.log('Properti fitur:', properties);
 
-          requiredFields.forEach(field => {
+          for (const field of requiredFields) {
             if (!(field in properties)) {
               missingFields.add(field);
             } else {
@@ -100,7 +100,7 @@ const ShapefilePenghijauanForm = () => {
                 emptyFieldsMap.get(field).push(featureCount);
               }
             }
-          });
+          }
         } while (!result.done);
 
         if (featureCount === 0) {
@@ -140,7 +140,7 @@ const ShapefilePenghijauanForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {

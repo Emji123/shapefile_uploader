@@ -18,7 +18,7 @@ const ShapefileBitproForm = () => {
   const requiredFields = [
     'ID', 'BPDAS', 'UR_BPDAS', 'WADMPR', 'WADMKK', 'WADMKC', 'DESA',
     'KELOMPOK', 'LUAS_HA', 'JENIS_TNM', 'BTG_TOTAL', 'THN_BUAT',
-    'THN_TNM', 'FUNGSI_KWS'
+    'THN_TNM', 'FUNGSI_KWS',
   ];
 
   const handleFileChange = (e) => {
@@ -56,7 +56,7 @@ const ShapefileBitproForm = () => {
         const dbfFile = files.find(name => name.toLowerCase() === `${baseName}.dbf`);
 
         if (!shxFile || !dbfFile) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf.`);
+          errorMessages.push(`${shapefileIndex}.` Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf`);
           continue;
         }
 
@@ -71,24 +71,25 @@ const ShapefileBitproForm = () => {
         let result;
         do {
           result = await source.read();
+        } while (result.done);
           console.log('Fitur:', result);
           if (result.done) break;
 
           featureCount++;
           const feature = result.value;
           if (!feature) {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid.`);
+            errorMessages.push(`${shapefileIndex}.` Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid`);
             break;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid.`);
+            errorMessages.push(`${shapefileIndex}.` Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid`);
             break;
           }
           console.log('Properti fitur:', properties);
 
-          requiredFields.forEach(field => {
+          for (const field of requiredFields) {
             if (!(field in properties)) {
               missingFields.add(field);
             } else {
@@ -100,17 +101,17 @@ const ShapefileBitproForm = () => {
                 emptyFieldsMap.get(field).push(featureCount);
               }
             }
-          });
+          }
         } while (!result.done);
 
         if (featureCount === 0) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data.`);
+          errorMessages.push(`${shapefileIndex}.` Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data`);
           continue;
         }
 
         let shapefileErrors = [];
         if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
-          shapefileErrors.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:`);
+          shapefileErrors.push(`${shapefileIndex}.` Pada shapefile ${baseName} yang belum lengkap:`);
           if (missingFields.size > 0) {
             shapefileErrors.push(`    a. Field yang belum ada yaitu:`);
             Array.from(missingFields).forEach(field => {
@@ -125,7 +126,7 @@ const ShapefileBitproForm = () => {
           }
           errorMessages.push(shapefileErrors.join('\n'));
         } else {
-          successMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} sudah lengkap`);
+          successMessages.push(`${shapefileIndex}.` Pada shapefile ${baseName} sudah lengkap`);
           validShapefileCount++;
         }
       }
@@ -140,7 +141,7 @@ const ShapefileBitproForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {

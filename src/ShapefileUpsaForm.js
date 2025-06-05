@@ -88,7 +88,7 @@ const ShapefileUpsaForm = () => {
           }
           console.log('Properti fitur:', properties);
 
-          requiredFields.forEach(field => {
+          for (const field of requiredFields) {
             if (!(field in properties)) {
               missingFields.add(field);
             } else {
@@ -100,7 +100,7 @@ const ShapefileUpsaForm = () => {
                 emptyFieldsMap.get(field).push(featureCount);
               }
             }
-          });
+          }
         } while (!result.done);
 
         if (featureCount === 0) {
@@ -140,7 +140,7 @@ const ShapefileUpsaForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {
@@ -187,7 +187,7 @@ const ShapefileUpsaForm = () => {
 
       if (fileError) {
         console.error('Upload error:', fileError);
-        setError('Gagal mengunggah: ' + fileError.message);
+        setError('Gagal mengunggah: ' + err.message);
         setIsUploading(false);
         return;
       }
@@ -215,16 +215,18 @@ const ShapefileUpsaForm = () => {
       setSuccess(validation.success);
       setFile(null);
       document.getElementById('shapefileUpsaInput').value = '';
+      }
     } catch (err) {
       console.error('Error umum:', err);
       setError('Terjadi kesalahan: ' + err.message);
       if (filePath) {
         await supabase.storage.from('persemaian').remove([filePath]);
       }
+      }
     } finally {
       setIsUploading(false);
+      }
     }
-  };
 
   return (
     <div className="form-container">

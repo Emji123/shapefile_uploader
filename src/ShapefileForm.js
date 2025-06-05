@@ -88,7 +88,7 @@ const ShapefileForm = () => {
           }
           console.log('Properti fitur:', properties);
 
-          requiredFields.forEach(field => {
+          for (const field of requiredFields) {
             if (!(field in properties)) {
               missingFields.add(field);
             } else {
@@ -100,7 +100,7 @@ const ShapefileForm = () => {
                 emptyFieldsMap.get(field).push(featureCount);
               }
             }
-          });
+          }
         } while (!result.done);
 
         if (featureCount === 0) {
@@ -140,7 +140,7 @@ const ShapefileForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Mohon perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {
