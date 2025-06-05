@@ -56,7 +56,7 @@ const ShapefilePenghijauanForm = () => {
         const dbfFile = files.find(name => name.toLowerCase() === `${baseName}.dbf`);
 
         if (!shxFile || !dbfFile) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf`);
+          errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf`);
           continue;
         }
 
@@ -77,13 +77,13 @@ const ShapefilePenghijauanForm = () => {
           featureCount++;
           const feature = result.value;
           if (!feature) {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid.`);
+            errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak valid`);
             break;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid.`);
+            errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak memiliki properti valid`);
             break;
           }
           console.log('Properti fitur:', properties);
@@ -104,34 +104,34 @@ const ShapefilePenghijauanForm = () => {
         } while (!result.done);
 
         if (featureCount === 0) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data.`);
+          errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Tidak memiliki data`);
           continue;
         }
 
         let shapefileErrors = [];
         if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
-          shapefileErrors.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:`);
+          shapefileErrors.push(`${shapefileIndex}. Shapefile ${baseName} belum lengkap:`);
           if (missingFields.size > 0) {
-            shapefileErrors.push(`    a. Field yang belum ada yaitu:`);
+            shapefileErrors.push(`    a. Field yang belum ada:`);
             Array.from(missingFields).forEach(field => {
               shapefileErrors.push(`         - ${field}`);
             });
           }
           if (emptyFieldsMap.size > 0) {
-            shapefileErrors.push(`    b. Field yang datanya belum diisi/kosong:`);
+            shapefileErrors.push(`    b. Field yang kosong:`);
             emptyFieldsMap.forEach((rows, field) => {
-              shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(',')}`);
+              shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(', ')}`);
             });
           }
           errorMessages.push(shapefileErrors.join('\n'));
         } else {
-          successMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} sudah lengkap`);
+          successMessages.push(`${shapefileIndex}. Shapefile ${baseName} sudah lengkap`);
           validShapefileCount++;
         }
       }
 
       if (validShapefileCount === shpFiles.length) {
-        return { valid: true, success: 'Data sudah valid dan berhasil diunggah' };
+        return { valid: true, success: 'Data sudah valid dan siap diunggah' };
       } else {
         let combinedMessage = [];
         if (successMessages.length > 0) {
@@ -140,12 +140,12 @@ const ShapefilePenghijauanForm = () => {
         if (errorMessages.length > 0) {
           combinedMessage.push(errorMessages.join('\n'));
         }
-        combinedMessage.push('Perbaiki shapefile dan upload ulang');
+        combinedMessage.push('Harap perbaiki shapefile dan upload ulang');
         return { valid: false, error: combinedMessage.join('\n') };
       }
     } catch (err) {
       console.error('Error validasi ZIP (Penghijauan):', err);
-      return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}\nPerbaiki shapefile dan upload ulang` };
+      return { valid: false, error: `Gagal memvalidasi ZIP: ${err.message}\nHarap perbaiki shapefile dan upload ulang` };
     }
   };
 
@@ -157,7 +157,7 @@ const ShapefilePenghijauanForm = () => {
 
     if (!file) {
       console.log('Tidak ada file dipilih');
-      setError('Pilih file ZIP terlebih dahulu!');
+      setError('Silakan pilih file ZIP terlebih dahulu!');
       setIsUploading(false);
       return;
     }
@@ -206,7 +206,7 @@ const ShapefilePenghijauanForm = () => {
 
       if (!response.ok) {
         console.error('Backend error:', result);
-        setError(result.error || 'Gagal memvalidasi shapefile.');
+        setError(result.error || 'Gagal memproses shapefile.');
         await supabase.storage.from('penghijauandinas').remove([filePath]);
         setIsUploading(false);
         return;
@@ -229,7 +229,7 @@ const ShapefilePenghijauanForm = () => {
   return (
     <div className="form-container">
       <h2>Upload Shapefile Kegiatan Penghijauan Dinas Kehutanan/LHK</h2>
-      {error && <p className="error">{error}</p>}
+      {error && <pre className="error">{error}</pre>}
       {success && <p className="success">{success}</p>}
       {isUploading && <p className="uploading">Sedang mengunggah shapefile...</p>}
       <form onSubmit={handleSubmit}>
@@ -250,7 +250,9 @@ const ShapefilePenghijauanForm = () => {
           <div className="file-name-box">
             {file ? file.name : 'Tidak ada file dipilih'}
           </div>
-          <button type="submit" disabled={isUploading}>Unggah</button>
+          <button type="submit" disabled={isUploading} className="upload-button">
+            {isUploading ? 'Mengunggah...' : 'Unggah'}
+          </button>
         </div>
       </form>
     </div>
