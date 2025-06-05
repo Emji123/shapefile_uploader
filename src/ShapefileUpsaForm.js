@@ -56,7 +56,7 @@ const ShapefileUpsaForm = () => {
         const dbfFile = files.find(name => name.toLowerCase() === `${baseName}.dbf`);
 
         if (!shxFile || !dbfFile) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf.`);
+          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Harus memiliki .shp, .shx, dan .dbf`);
           continue;
         }
 
@@ -77,13 +77,13 @@ const ShapefileUpsaForm = () => {
           featureCount++;
           const feature = result.value;
           if (!feature) {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid.`);
+            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak valid`);
             break;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
-            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid.`);
+            errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - Baris ke-${featureCount} tidak memiliki properti valid`);
             break;
           }
           console.log('Properti fitur:', properties);
@@ -104,7 +104,7 @@ const ShapefileUpsaForm = () => {
         } while (!result.done);
 
         if (featureCount === 0) {
-          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data.`);
+          errorMessages.push(`${shapefileIndex}. Pada shapefile ${baseName} yang belum lengkap:\n    - File tidak memiliki baris data`);
           continue;
         }
 
@@ -187,7 +187,7 @@ const ShapefileUpsaForm = () => {
 
       if (fileError) {
         console.error('Upload error:', fileError);
-        setError('Gagal mengunggah: ' + err.message);
+        setError('Gagal mengunggah: ' + fileError.message);
         setIsUploading(false);
         return;
       }
@@ -215,18 +215,16 @@ const ShapefileUpsaForm = () => {
       setSuccess(validation.success);
       setFile(null);
       document.getElementById('shapefileUpsaInput').value = '';
-      }
     } catch (err) {
       console.error('Error umum:', err);
       setError('Terjadi kesalahan: ' + err.message);
       if (filePath) {
         await supabase.storage.from('persemaian').remove([filePath]);
       }
-      }
     } finally {
       setIsUploading(false);
-      }
     }
+  };
 
   return (
     <div className="form-container">
