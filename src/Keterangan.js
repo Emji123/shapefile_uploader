@@ -8,7 +8,7 @@ const Keterangan = () => {
       <div className="keterangan-box">
         <ol className="keterangan-list">
           <li>Format shapefile mengacu pada Nota Dinas Direktur yang berlaku. Ketidaksesuaian nama field dan/atau tidak tersedianya salah satu field dapat menyebabkan eror saat proses upload.</li>
-          <li>Semua field harus terisi datanya, jika memang tidak ada datanya silakan isi dengan "NO DATA".</li>
+          <li>Semua field harus terisi datanya, jika memang tidak ada datanya silakan isi dengan "NO DATA". Khusus untuk field "LUAS_HA" dan "BTG_TOTAL" agar semuanya diisi dengan nilai yang sesuai.</li>
           <li>
             Shapefile dikemas dalam file berekstensi .zip dan dalam satu file zip dapat terdiri dari beberapa file shp yang berbeda (misalnya shp tahun 2019, 2020, 2022 dst dalam satu file .zip). 
             Format penamaan file .zip dapat mengikuti format "BPDAS_JENISKEGIATAN.zip", contohnya sebagai berikut:

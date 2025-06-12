@@ -66,6 +66,7 @@ const ShapefileBitproForm = () => {
 
         let missingFields = new Set();
         let emptyFieldsMap = new Map();
+        let invalidFieldsMap = new Map();
         let featureCount = 0;
 
         let result;
@@ -75,6 +76,7 @@ const ShapefileBitproForm = () => {
           if (result.done) break;
 
           featureCount++;
+
           const feature = result.value;
           if (!feature) {
             errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak valid`);
@@ -98,6 +100,11 @@ const ShapefileBitproForm = () => {
                   emptyFieldsMap.set(field, []);
                 }
                 emptyFieldsMap.get(field).push(featureCount);
+              } else if ((field === 'LUAS_HA' || field === 'BTG_TOTAL') && value <= 0) {
+                if (!invalidFieldsMap.has(field)) {
+                  invalidFieldsMap.set(field, []);
+                }
+                invalidFieldsMap.get(field).push(featureCount);
               }
             }
           }
@@ -109,18 +116,24 @@ const ShapefileBitproForm = () => {
         }
 
         let shapefileErrors = [];
-        if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
+        if (missingFields.size > 0 || emptyFieldsMap.size > 0 || invalidFieldsMap.size > 0) {
           shapefileErrors.push(`${shapefileIndex}. Shapefile ${baseName} belum lengkap:`);
           if (missingFields.size > 0) {
-            shapefileErrors.push(`    a. Field yang belum ada:`);
+            shapefileErrors.push('    a. Field yang belum ada:');
             Array.from(missingFields).forEach(field => {
               shapefileErrors.push(`         - ${field}`);
             });
           }
           if (emptyFieldsMap.size > 0) {
-            shapefileErrors.push(`    b. Field yang kosong:`);
+            shapefileErrors.push('    b. Field yang kosong:');
             emptyFieldsMap.forEach((rows, field) => {
               shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(', ')}`);
+            });
+          }
+          if (invalidFieldsMap.size > 0) {
+            shapefileErrors.push('    c. Field yang tidak valid:');
+            invalidFieldsMap.forEach((rows, field) => {
+              shapefileErrors.push(`         - ${field} tidak boleh bernilai 0 atau negatif, pada baris: ${rows.join(', ')}`);
             });
           }
           errorMessages.push(shapefileErrors.join('\n'));
@@ -131,7 +144,7 @@ const ShapefileBitproForm = () => {
       }
 
       if (validShapefileCount === shpFiles.length) {
-        return { valid: true, success: 'Data sudah valid dan siap diunggah' };
+        return { valid: true, success: 'Data sudah valid dan selesai diunggah' };
       } else {
         let combinedMessage = [];
         if (successMessages.length > 0) {

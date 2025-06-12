@@ -66,6 +66,7 @@ const ShapefilePenghijauanForm = () => {
 
         let missingFields = new Set();
         let emptyFieldsMap = new Map();
+        let invalidFieldsMap = new Map();
         let featureCount = 0;
 
         let result;
@@ -78,7 +79,7 @@ const ShapefilePenghijauanForm = () => {
           const feature = result.value;
           if (!feature) {
             errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak valid`);
-            break;
+            continue;
           }
 
           const properties = feature.properties || feature;
@@ -98,6 +99,11 @@ const ShapefilePenghijauanForm = () => {
                   emptyFieldsMap.set(field, []);
                 }
                 emptyFieldsMap.get(field).push(featureCount);
+              } else if ((field === 'LUAS_HA' || field === 'BTG_TOTAL') && value <= 0) {
+                if (!invalidFieldsMap.has(field)) {
+                  invalidFieldsMap.set(field, []);
+                }
+                invalidFieldsMap.get(field).push(featureCount);
               }
             }
           }
@@ -109,7 +115,7 @@ const ShapefilePenghijauanForm = () => {
         }
 
         let shapefileErrors = [];
-        if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
+        if (missingFields.size > 0 || emptyFieldsMap.size > 0 || invalidFieldsMap.size > 0) {
           shapefileErrors.push(`${shapefileIndex}. Shapefile ${baseName} belum lengkap:`);
           if (missingFields.size > 0) {
             shapefileErrors.push(`    a. Field yang belum ada:`);
@@ -123,6 +129,12 @@ const ShapefilePenghijauanForm = () => {
               shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(', ')}`);
             });
           }
+          if (invalidFieldsMap.size > 0) {
+            shapefileErrors.push(`    c. Field yang tidak valid:`);
+            invalidFieldsMap.forEach((rows, field) => {
+              shapefileErrors.push(`         - ${field} tidak boleh bernilai 0 atau negatif, pada baris: ${rows.join(', ')}`);
+            });
+          }
           errorMessages.push(shapefileErrors.join('\n'));
         } else {
           successMessages.push(`${shapefileIndex}. Shapefile ${baseName} sudah lengkap`);
@@ -131,7 +143,7 @@ const ShapefilePenghijauanForm = () => {
       }
 
       if (validShapefileCount === shpFiles.length) {
-        return { valid: true, success: 'Data sudah valid dan siap diunggah' };
+        return { valid: true, success: 'Data sudah valid dan selesai diunggah' };
       } else {
         let combinedMessage = [];
         if (successMessages.length > 0) {

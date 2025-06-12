@@ -66,6 +66,7 @@ const ShapefileUpsaForm = () => {
 
         let missingFields = new Set();
         let emptyFieldsMap = new Map();
+        let invalidFieldsMap = new Map();
         let featureCount = 0;
 
         let result;
@@ -78,15 +79,15 @@ const ShapefileUpsaForm = () => {
           const feature = result.value;
           if (!feature) {
             errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak valid`);
-            break;
+            continue;
           }
 
           const properties = feature.properties || feature;
           if (!properties || typeof properties !== 'object') {
             errorMessages.push(`${shapefileIndex}. Shapefile ${baseName} tidak valid:\n    - Baris ke-${featureCount} tidak memiliki properti valid`);
-            break;
+            continue;
           }
-          console.log('Properti fitur:', properties);
+          console.log('Properti:', properties);
 
           for (const field of requiredFields) {
             if (!(field in properties)) {
@@ -98,6 +99,11 @@ const ShapefileUpsaForm = () => {
                   emptyFieldsMap.set(field, []);
                 }
                 emptyFieldsMap.get(field).push(featureCount);
+              } else if ((field === 'LUAS_HA' || field === 'BTG_TOTAL') && value <= 0) {
+                if (!invalidFieldsMap.has(field)) {
+                  invalidFieldsMap.set(field, []);
+                }
+                invalidFieldsMap.get(field).push(featureCount);
               }
             }
           }
@@ -109,7 +115,7 @@ const ShapefileUpsaForm = () => {
         }
 
         let shapefileErrors = [];
-        if (missingFields.size > 0 || emptyFieldsMap.size > 0) {
+        if (missingFields.size > 0 || emptyFieldsMap.size > 0 || invalidFieldsMap.size > 0) {
           shapefileErrors.push(`${shapefileIndex}. Shapefile ${baseName} belum lengkap:`);
           if (missingFields.size > 0) {
             shapefileErrors.push(`    a. Field yang belum ada:`);
@@ -123,6 +129,12 @@ const ShapefileUpsaForm = () => {
               shapefileErrors.push(`         - ${field}, pada baris: ${rows.join(', ')}`);
             });
           }
+          if (invalidFieldsMap.size > 0) {
+            shapefileErrors.push(`    c. Field yang tidak valid:`);
+            invalidFieldsMap.forEach((rows, field) => {
+              shapefileErrors.push(`         - ${field} tidak boleh bernilai 0 atau negatif, pada baris: ${rows.join(', ')}`);
+            });
+          }
           errorMessages.push(shapefileErrors.join('\n'));
         } else {
           successMessages.push(`${shapefileIndex}. Shapefile ${baseName} sudah lengkap`);
@@ -131,7 +143,7 @@ const ShapefileUpsaForm = () => {
       }
 
       if (validShapefileCount === shpFiles.length) {
-        return { valid: true, success: 'Data sudah valid dan siap diunggah' };
+        return { valid: true, success: 'Data sudah valid dan selesai diunggah' };
       } else {
         let combinedMessage = [];
         if (successMessages.length > 0) {
@@ -174,24 +186,22 @@ const ShapefileUpsaForm = () => {
     let filePath = '';
     try {
       const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-      console.log('Waktu lokal:', now.toString());
+      console.log('Waktu lokal:', now);
       const dateString = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_').toUpperCase();
       const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/[:.]/g, '');
       const fileNameWithDate = `${dateString}_${timeString}_${file.name}`;
       filePath = `shapefiles/${fileNameWithDate}`;
-      console.log('Mengunggah ke:', { bucket: 'persemaian', filePath });
+      console.log('Mengunggah:', { bucket: 'persemaian', filePath });
 
       const { data: uploadData, error: fileError } = await supabase.storage
         .from('persemaian')
-        .upload(filePath, file, { upsert: true });
-
+        .upload(filePath, file);
       if (fileError) {
         console.error('Upload error:', fileError);
         setError('Gagal mengunggah: ' + fileError.message);
-        setIsUploading(false);
         return;
       }
-      console.log('Upload sukses:', uploadData);
+      console.log('Upload berhasil:', uploadData);
 
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
       console.log('Mengirim ke backend:', { zip_path: filePath, bucket: 'persemaian' });
@@ -202,13 +212,12 @@ const ShapefileUpsaForm = () => {
       });
 
       const result = await response.json();
-      console.log('Respons backend:', result);
+      console.log('Response backend:', result);
 
       if (!response.ok) {
-        console.error('Backend error:', result);
+        console.error('Error backend:', result);
         setError(result.error || 'Gagal memproses shapefile.');
         await supabase.storage.from('persemaian').remove([filePath]);
-        setIsUploading(false);
         return;
       }
 
@@ -216,7 +225,7 @@ const ShapefileUpsaForm = () => {
       setFile(null);
       document.getElementById('shapefileUpsaInput').value = '';
     } catch (err) {
-      console.error('Error umum:', err);
+      console.error('Error:', err);
       setError('Terjadi kesalahan: ' + err.message);
       if (filePath) {
         await supabase.storage.from('persemaian').remove([filePath]);
@@ -228,14 +237,14 @@ const ShapefileUpsaForm = () => {
 
   return (
     <div className="form-container">
-      <h2>Upload Shapefile Penanaman Bibit Persemaian</h2>
+      <h2>Upload Shapefile Penanaman Bibit</h2>
       {error && <pre className="error">{error}</pre>}
       {success && <p className="success">{success}</p>}
-      {isUploading && <p className="uploading">Sedang mengunggah shapefile...</p>}
+      {isUploading && <p className="uploading">Sedang mengunggah...</p>}
       <form onSubmit={handleSubmit}>
         <div className="input-group">
           <label htmlFor="shapefileUpsaInput" className="file-input-label">
-            Pilih File .zip Persemaian
+            Pilih File .zip Bibit
           </label>
           <input
             type="file"
